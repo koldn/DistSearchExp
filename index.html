@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
 
-    <title>Groovier SD</title>
+    <title>DistSearch</title>
 
     <meta name="description" content="SMP Distributed search experience">
     <meta name="author" content="Dmitriy Kolmogortsev">
@@ -70,6 +70,10 @@
             color: orangered;
             font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
         }
+
+        .red-text {
+            color:red;
+        }
         
         .arrow-list ul {
             list-style: none;
@@ -102,78 +106,92 @@
             </section>
             <section>
                 <h2>Before we start</h2>
-                <li><b>SMP experience</b></li>
-                <li><b>My personal pain mostly</b></li>
+                <li><b>Опыт SD4</b></li>
+                <li><b>В основном моя боль</b></li>
             </section>
             <section>
-                <h5>Во времена, когда солнце было выше и трава зеленее:</h5>
+                <h2> Lucene - наше всё</h2>
+            </section>
+            <section>
+                <h5>Как развивалось</h5>
                 <p class="fragment fade-down">
-                    <b>\u2193</b>
+                    <b>Standalone приложение: индексы лежат на файловой системе </b>
                 </p>
-
-
+                <p class="fragment fade-down">
+                    <b>Счастье, доброта, котятки</b>
+                </p>
+                <p class="fragment fade-down">
+                    <b>Случился кластер</b>
+                </p>
+                <p class="fragment fade-down">
+                    <b>JDBC Directory - весь индекс лежит в БД</b>
+                </p>
+                <p class="fragment fade-down">
+                    <b>Время шло и скорость поиска падала</b>
+                </p>
+            </section>
+            <section>
+                <h2>Infinispan Directory</h2>
+                <p>InMemory индексы</p>
+            </section>
+            <section>
+                <h3>Строится на 3-х кешах:</h3>
+                <ol>
+                    <li class="fragment">Metadata Cache - Описание данных (Replicated)  <span class="fragment" style="color:green;">Backed by DB</span></li>
+                    <li class="fragment">Chunks Cache - Данные (Distributed) <span class="fragment red-text" >Replicated</span> <span class="fragment" style="color:green;">Backed by DB</span> </li>
+                    <li class="fragment">Locks Cache - Распределенные блокировки (Distributed)<span class="fragment red-text">Not used</span></li>
+                </ol>
+            </section>
+            <section>
+                <h2>Profit!</h2>
+            </section>
+            <section>
+                <h2>Первые проблемы</h2>
+                <p>
+                    ${Картинка с потерей связи до базы}
+                </p>
+            </section>
+            <section>
+                <code data-trim class="java red-text">FileNotFoundException: error loading metadata for ${filename}</code><br><br>
+                <p class="fragment">Каждую секунду! Каждую секунду, Карл</p>
+                <p class="fragment">Индексация не работает!</p>
+                <p class="fragment">Поиск не работает!</p>
+                <p class="fragment">Все пропало!</p>
 
             </section>
             <section>
-                <h2>Измерим вызов Groovy из Java</h2>
-                <pre><code data-trim class="java">@BenchmarkMode(value = Mode.Throughput)
-@Warmup(iterations = 4, time = 20, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 8, time = 20, timeUnit = TimeUnit.SECONDS)
-@Fork(4)
-@Threads(8)</code></pre>
+                <h2>Будем резервировать индекс!</h2>
+                <ul>
+                    <li class="fragment">Файловая система: Сохранение всех файлов индекс</li>
+                    <li class="fragment">Infinispan: Копирование таблиц с индексом <b class="fragment red-text">SPOILER: просто так оно не работает</b></li>
+                </ul>
             </section>
             <section>
-                <h2>Измерили</h2>
-                <table>
-                    <tr>
-                        <td>GroovyJSR223Benchmark</td>
-                        <td>137030.242</td>
-                        <td>op/s</td>
-                    </tr>
-                    <tr>
-                        <td>GroovyShellBenchmark</td>
-                        <td>4101902.557</td>
-                        <td>op/s</td>
-                    </tr>
-                    <tr>
-                        <td>IndyGroovyShellBenchmark</td>
-                        <td>4734100.850</td>
-                        <td>op/s</td>
-                    </tr>
-                    <tr>
-                        <td>TypedScriptBenchmark</td>
-                        <td>4689558.813 </td>
-                        <td>op/s</td>
-                    </tr>
-                </table>
-                <a href="https://github.com/d0k1/groovy-eval-bench">more here</a>
+                <h2>NSDPRD-6116: Доработка резервирования индексов lucene</h2>
             </section>
             <section>
-                <h2>Прикрутим к нашему коду</h2>
-                <p>Проверка на той самой типовой операции из Intro</p>
-                <table>
-                    <thead>
-                        <th>Threads</th>
-                        <th>4.6.0.4 + JSR</th>
-                        <th>4.6.0.4 + Groovy shell</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>10</td>
-                            <td>3649</td>
-                            <td>14991</td </tr>
-                            <tr>
-                                <td>50</td>
-                                <td>20878</td>
-                                <td>78703</td>
-                            </tr>
-                            <tr>
-                                <td>100</td>
-                                <td>41552</td>
-                                <td>158174</td>
-                            </tr>
-                            <tbody>
-                </table>
+                <p>Вопросы на данный момент</p>
+                <ul>
+                    <li class="fragment">Запись в БД происходит в рамках одного соединения?</li>
+                    <li class="fragment">Почему при любой проблеме индекс ломается?</li>
+                    <li class="fragment">Почему восстановление таблиц индекса не приводит к успеху?</li>
+                </ul>
+            </section>
+            <section>
+                <p>Происходит ли запись в БД в рамках одного соединения? <span class="fragment red-text"> - нет</span></p>
+                <ul>
+                    <li class="fragment">Каждый кеш - своя настройка синхронизации с БД</li>
+                    <li class="fragment">На каждое изменение - новое соединие</li>
+                    <li class="fragment">Не атомарно - проблема</li>
+                </ul>
+            </section>
+            <section>
+                <h4>Пишем атомарно</h4>
+                <ul>
+                    <li class="fragment">Metadata cache + Chunks cache = Index Cache</li>
+                    <li class="fragment">Собственный перехватчик комманд, который сливает все изменения в рамках одной транзакции</li>
+                    <li class="fragment">Custom LRU eviction for Index Cache (наткнулись на баг в Java)</li>
+                </ul>
             </section>
             <section>
                 <h2>Dafuq?!</h2>
