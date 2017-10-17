@@ -70,9 +70,9 @@
             color: orangered;
             font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
         }
-
+        
         .red-text {
-            color:red;
+            color: red;
         }
         
         .arrow-list ul {
@@ -137,8 +137,8 @@
             <section>
                 <h3>Строится на 3-х кешах:</h3>
                 <ol>
-                    <li class="fragment">Metadata Cache - Описание данных (Replicated)  <span class="fragment" style="color:green;">Backed by DB</span></li>
-                    <li class="fragment">Chunks Cache - Данные (Distributed) <span class="fragment red-text" >Replicated</span> <span class="fragment" style="color:green;">Backed by DB</span> </li>
+                    <li class="fragment">Metadata Cache - Описание данных (Replicated) <span class="fragment" style="color:green;">Backed by DB</span></li>
+                    <li class="fragment">Chunks Cache - Данные (Distributed) <span class="fragment red-text">Replicated</span> <span class="fragment" style="color:green;">Backed by DB</span> </li>
                     <li class="fragment">Locks Cache - Распределенные блокировки (Distributed)<span class="fragment red-text">Not used</span></li>
                 </ol>
             </section>
@@ -192,6 +192,25 @@
                     <li class="fragment">Собственный перехватчик комманд, который сливает все изменения в рамках одной транзакции</li>
                     <li class="fragment">Custom LRU eviction for Index Cache (наткнулись на баг в Java)</li>
                 </ul>
+            </section>
+            <section>
+                <pre>
+                    <code class="java">
+                            try
+                            {
+                                _theSynch.afterCompletion(s);
+                
+                                return true;
+                            }
+                            catch (Exception e)
+                            {
+                                jtaLogger.i18NLogger.warn_resources_arjunacore...
+                
+                                return false; // should not cause any affect!
+                            }
+
+                    </code>
+                </pre>
             </section>
             <section>
                 <h2>Dafuq?!</h2>
