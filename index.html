@@ -74,14 +74,6 @@
         .red-text {
             color: red;
         }
-        
-        .arrow-list ul {
-            list-style: none;
-        }
-        
-        .arrow-list li::before {
-            content: "\2193 \0020";
-        }
     </style>
 </head>
 
@@ -126,10 +118,13 @@
                 <p class="fragment fade-down">
                     <b>JDBC Directory - весь индекс лежит в БД</b>
                 </p>
-                <p class="fragment fade-down">
-                    <b>Время шло и скорость поиска падала</b>
-                </p>
             </section>
+            <section data-background="img/unicorn.gif" data-background-transition="zoom">
+
+            </section>
+            <section data-background="img/fire-nation.gif" data-background-transition="zoom">
+                
+                            </section>
             <section>
                 <h2>Infinispan Directory</h2>
                 <p>InMemory индексы</p>
@@ -148,7 +143,7 @@
             <section>
                 <h2>Первые проблемы</h2>
                 <p>
-                    ${Картинка с потерей связи до базы}
+                    ${Представьте, что здесь изображена потеря связи до БД}
                 </p>
             </section>
             <section>
@@ -162,12 +157,15 @@
             <section>
                 <h2>Будем резервировать индекс!</h2>
                 <ul>
-                    <li class="fragment">Файловая система: Сохранение всех файлов индекс</li>
+                    <li class="fragment">Файловая система: Сохранение всех файлов индекса в архиве рядом с рабочими файлами</li>
                     <li class="fragment">Infinispan: Копирование таблиц с индексом <b class="fragment red-text">SPOILER: просто так оно не работает</b></li>
                 </ul>
             </section>
             <section>
-                <h2>NSDPRD-6116: Доработка резервирования индексов lucene</h2>
+                <h2>10.03.2017</h2>
+                <p class="fragment">
+                    Жизнь разделилась на До и После
+                </p>
             </section>
             <section>
                 <p>Вопросы на данный момент</p>
@@ -194,8 +192,65 @@
                 </ul>
             </section>
             <section>
+                <h3>Почему все сразу ломается?!</h3>
+                <div class="fragment">
+                    <p>После предыдущих манипуляций получилось как-то так:</p>
+                    <pre>
+                        <code data-trim data-noescape class="java">
+                            {
+                                try(IndexWriter iw = getWriter()){
+                                    ...
+                                    txAction(() -> {
+                                        iw.commit();
+                                    });
+                                }
+                                ...
+                            }
+                        </code>
+                    </pre>
+                </div>
+            </section>
+            <section>
+                <h3>Разберем что происходит</h3>
+                <div>
+                    <pre>
+                        <code class="java" data-noescape>
+                    txAction(() -> {
+                        iw.commit();
+                    });
+                        </code>
+                    </pre>
+                    <div class="fragment">
+                        Все коммиты кроме последнего будут удалены (По умолчанию)
+                    </div>
+                </div>
+            </section>
+            <section>
+                <h3>
+                    Что далее:
+                </h3>
                 <pre>
-                    <code class="java">
+                        <code class="java" data-noescape>
+                    InfinispanTxSync
+                    {
+                        afterCompletion(int status){
+                            ...
+                            cache.prepare()
+                            ...
+                            cache.commit()
+                        }
+                    }
+                        </code>
+                    </pre>
+                <div>
+                    Что же может пойти не так? <b class="fragment red-text"> ВСЁ</b><br>
+                    <span class="fragment">и мы об этом никогда не узнаем =(</span>
+                </div>
+            </section>
+            <section>
+                <h2>Сюрприз в TransactionManager</h2>
+                <pre>
+                    <code data-trim class="java">
                             try
                             {
                                 _theSynch.afterCompletion(s);
@@ -213,129 +268,58 @@
                 </pre>
             </section>
             <section>
-                <h2>Dafuq?!</h2>
-                <img src="img/wtf.gif" />
+                <h2>Что делать, товарищи?</h2>
+                <ol>
+                    <li class="fragment">Учиться хранить не только последний коммит</li>
+                    <li class="fragment">Учиться следить за транзакциями в кеше</li>
+                </ol>
             </section>
             <section>
-                <h2>Начинаем расследование</h2>
-                <pre><code data-trim class="java">
-                    http-nio-10500-exec-17" #2594 daemon prio=5 os_prio=0 tid=0x00007fdf4c0f4800 nid=0x340a waiting for monitor entry [0x00007fde8a89b000]
-   java.lang.Thread.State: BLOCKED (on object monitor)
-	at groovy.lang.ExpandoMetaClass.performOperationOnMetaClass(ExpandoMetaClass.java:815)
-	- locked <0x000000066516d480> (a groovy.lang.ExpandoMetaClass)
-	at groovy.lang.ExpandoMetaClass.registerInstanceMethod(ExpandoMetaClass.java:879)
-	at groovy.lang.ExpandoMetaClass.setProperty(ExpandoMetaClass.java:794)
-	at org.codehaus.groovy.runtime.InvokerHelper.setProperty(InvokerHelper.java:195)
-	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.setProperty(ScriptBytecodeAdapter.java:484)
-	at script1469016640536691462225.run(script1469016640536691462225.groovy:8)
-	at sun.reflect.GeneratedMethodAccessor337.invoke(Unknown Source)
-	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.lang.reflect.Method.invoke(Method.java:498)
-	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:93)
-	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:325)
-	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1215)
-	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1024)
-	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:805)
-	at groovy.lang.GroovyObjectSupport.invokeMethod(GroovyObjectSupport.java:46)
-	at groovy.lang.Script.invokeMethod(Script.java:80)
-</code></pre>
+                <h3>
+                    Научились
+                </h3>
+                <pre>
+                    <code class="java" data-trim>
+                        {
+                            indexCachemonitor.start();
+                            runInTx(() -> {
+                                try(IndexWriter iw = getWriter(${n-1 commit policy})){
+                                    ...
+                                    iw.commt();
+                                }
+                            }
+                            if(indexCachemonitor.isTransactionFailed()){
+                                rollBackComponent.rollBack()
+                            }
+                        }
+                    </code>
+                </pre>
             </section>
             <section>
-                <h2>Legacy stuff</h2>
-                <pre><code code data-trim class="groovy">
-                    import static org.codehaus.groovy.runtime.InvokerHelper.toMapString;
-def toStr = {
-     delegate.title != null ? delegate.title : delegate.uuid != null
-      ? delegate.uuid : toMapString(delegate, 10)
-}
-java.util.LinkedHashMap.metaClass.toString = toStr
-...
-wrapped.run()
-                  </code><pre>
-                </section>
-                <section>
-                  <h2>Чиним legacy</h2>
-                  <pre><code data-trim class="groovy">
-                    import static org.codehaus.groovy.runtime.InvokerHelper.toMapString;
-class Init{
-    static
-    {
-       def toStr =
-       {
-           delegate.title != null ? delegate.title : delegate.uuid
-           != null ? delegate.uuid : toMapString(delegate, 10)
-       }
-       java.util.LinkedHashMap.metaClass.toString = toStr
-       ...
-    }
-}
-new Init()
-wrapped.run();
-</code></pre>
+                <h3>indexCachemonitor</h3>
             </section>
             <section>
-                <h2>Проверим снова</h2>
-                <table>
-                    <thead>
-                        <th>Threads</th>
-                        <th>4.6.0.4 + JSR</th>
-                        <th>4.6.0.4 + Groovy shell + legacy fix</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>10</td>
-                            <td>3649</td>
-                            <td>2752</td </tr>
-                            <tr>
-                                <td>50</td>
-                                <td>20878</td>
-                                <td>15032</td>
-                            </tr>
-                            <tr>
-                                <td>100</td>
-                                <td>41552</td>
-                                <td>30263</td>
-                            </tr>
-                            <tbody>
-                </table>
+                <h3>Из необычного</h3>
+                <p>
+                    При попытке таки использовать LocksCache я получил...
+                </p>
             </section>
             <section>
-                <h2>Шло время</h2>
-                <img src="" />
+                    <code class="red-text">AbstractMethodError</code>
+                    <img src="img/wtf.gif" />
             </section>
             <section>
-                <h2>С чем столкнулись</h2>
-                <ul>
-                    <li>OOM Killer
-                        <li>Native memory allocation (malloc) failed to allocate...
-                </ul>
+                <h3>Why?!</h3>
+                Lucene 4.7 и Infinispan Directory 6.0 <br> в одном месте очень не совместимы
             </section>
             <section>
-                <img src="img/groovy.gif" />
+                <h3>Now what?</h3>
+                <div class="fragment">
+                    Проблемы еще есть, и они постепенно решаются
+                </div>
             </section>
             <section>
-                <h2> скриншоты из MAT c кучей груви классов</h2>
-            </section>
-            <section>
-                <h2>Tell about groovy meta-methods cache</h2>
-            </section>
-            <section>
-                <h2>Как решили</h2>
-            </section>
-            <section>
-                <h2>Groovy templates</h2>
-            </section>
-            <section>
-                <h2>Sometime after...again!</h2>
-                <pre><code data-trim class="groovy">
-                    return new SimpleTemplateEngine().parse(textData).make(bindings)
-                  </code></pre>
-            </section>
-            <section>
-                <h2>Кусок кода из сырцов груви</h2>
-            </section>
-            <section>
-                <h2>Velocity</h2>
+                <h3>KK THX BYE</h3>
             </section>
         </div>
     </div>
