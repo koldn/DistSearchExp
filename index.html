@@ -123,8 +123,8 @@
 
             </section>
             <section data-background="img/fire-nation.gif" data-background-transition="zoom">
-                
-                            </section>
+
+            </section>
             <section>
                 <h2>Infinispan Directory</h2>
                 <p>InMemory индексы</p>
@@ -297,6 +297,24 @@
             </section>
             <section>
                 <h3>indexCachemonitor</h3>
+                <pre>
+                    <code style="font-size: 80%"class="java" data-trim>
+                        public class IndexCacheMonitor
+                        {
+                            @Listener
+                            private static final class IndexCacheListener
+                            {                       
+                                @TransactionCompleted
+                                public void transactionCompleted<(TransactionCompletedEvent<?, ?> transactionEvent) { ... }
+                            }
+                    
+                            public boolean isTransactionFailed() { ... }
+                            
+                            public void start() { indexCache.addListener(CACHE_LISTENER); }
+                            public void stop() { indexCache.removeListener(CACHE_LISTENER); }
+                        }
+                    </code>
+                </pre>
             </section>
             <section>
                 <h3>Из необычного</h3>
@@ -305,8 +323,8 @@
                 </p>
             </section>
             <section>
-                    <code class="red-text">AbstractMethodError</code>
-                    <img src="img/wtf.gif" />
+                <code class="red-text">AbstractMethodError</code>
+                <img src="img/wtf.gif" />
             </section>
             <section>
                 <h3>Why?!</h3>
