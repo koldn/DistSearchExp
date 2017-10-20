@@ -98,8 +98,10 @@
             </section>
             <section>
                 <h2>Before we start</h2>
-                <li><b>Опыт SD4</b></li>
-                <li><b>В основном моя боль</b></li>
+                <ul>
+                    <li>Опыт SD4</li>
+                    <li>В основном моя боль</li>
+                </ul>
             </section>
             <section>
                 <h2> Lucene - наше всё</h2>
@@ -107,16 +109,16 @@
             <section>
                 <h5>Как развивалось</h5>
                 <p class="fragment fade-down">
-                    <b>Standalone приложение: индексы лежат на файловой системе </b>
+                    Standalone приложение: индексы лежат на файловой системе
                 </p>
                 <p class="fragment fade-down">
-                    <b>Счастье, доброта, котятки</b>
+                    Счастье, доброта, котятки
                 </p>
                 <p class="fragment fade-down">
-                    <b>Случился кластер</b>
+                    Случился кластер
                 </p>
                 <p class="fragment fade-down">
-                    <b>JDBC Directory - весь индекс лежит в БД</b>
+                    JDBC Directory - весь индекс лежит в БД
                 </p>
             </section>
             <section data-background="img/unicorn.gif" data-background-transition="zoom">
@@ -305,7 +307,10 @@
                             private static final class IndexCacheListener
                             {                       
                                 @TransactionCompleted
-                                public void transactionCompleted<(TransactionCompletedEvent<?, ?> transactionEvent) { ... }
+                                public void txComplete(
+                                    TransactionCompletedEvent&lt?, ?&gt transactionEvent
+                                ) 
+                                { ... }
                             }
                     
                             public boolean isTransactionFailed() { ... }
@@ -317,25 +322,27 @@
                 </pre>
             </section>
             <section>
-                <h3>Из необычного</h3>
-                <p>
+                <h3>Now what?</h3>
+                <div class="fragment">
+                    Проблемы еще есть, и они постепенно решаются
+                </div>
+            </section>
+            <section>
+                <h3>One more thing</h3>
+                <p class="fragment">
                     При попытке таки использовать LocksCache я получил...
                 </p>
             </section>
             <section>
                 <code class="red-text">AbstractMethodError</code>
+                <br>
                 <img src="img/wtf.gif" />
             </section>
             <section>
                 <h3>Why?!</h3>
                 Lucene 4.7 и Infinispan Directory 6.0 <br> в одном месте очень не совместимы
             </section>
-            <section>
-                <h3>Now what?</h3>
-                <div class="fragment">
-                    Проблемы еще есть, и они постепенно решаются
-                </div>
-            </section>
+
             <section>
                 <h3>KK THX BYE</h3>
             </section>
